@@ -12,7 +12,7 @@ import iView from "iview";
 
 Vue.use(Router);
 const router = new Router({
-    base: "/ScreenSnow/",
+    base: "/",
     routes,
     mode: "history"
 });
