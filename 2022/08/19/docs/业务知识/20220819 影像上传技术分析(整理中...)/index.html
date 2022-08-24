@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>520wsl | 影像上传技术分析 | 520wsl</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="shortcut icon" href="/imgs/shortcut-icon.ico" type="image/x-icon">
+
+  
+    <link rel="stylesheet" href="/css/public.css" />
+    <link rel="stylesheet" href="/css/layout.css" />
+    <link rel="stylesheet" href="/css/iconfont.css" />
+    <link rel="stylesheet" href="/css/APlayer.min.css" />
+    <script src="/js/APlayer.min.js"></script>
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/jquery.pjax.min.js"></script>
+  
+  <script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+  <script>
+    document.title = `520wsl | 影像上传技术分析`
+  </script>
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<style>
+  .load {
+    width: 100%;
+    height: 100vh;
+    background-color: rgb(37, 35, 40);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 9999;
+  }
+  .load-circle {
+    width: 80px;
+    height: 80px;
+    border: 8px solid orange;
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: rotate 1s linear infinite;
+    filter: drop-shadow(0 0 3px orange);
+  }
+  .load-circle-inner {
+    width: 40px;
+    height: 40px;
+    border: 8px solid orange;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: rotate-reverse .5s linear infinite;
+  }
+  .load-text {
+    margin-top: 20px;
+    font-size: 24px;
+    color: orange;
+    display: flex;
+  }
+  .load-text span {
+    margin: 0 5px;
+    text-shadow: 5px 5px 5px orange;
+    animation: move 1s linear infinite;
+  }
+  .load-text span:nth-child(1) {
+    animation-delay: -0.6s;
+  }
+  .load-text span:nth-child(2) {
+    animation-delay: -0.5s;
+  }
+  .load-text span:nth-child(3) {
+    animation-delay: -0.4s;
+  }
+  .load-text span:nth-child(4) {
+    animation-delay: -0.3s;
+  }
+  .load-text span:nth-child(5) {
+    animation-delay: -0.2s;
+  }
+  .load-text span:nth-child(6) {
+    animation-delay: -0.1s;
+  }
+  @keyframes rotate {
+    0% { transform: rotate(0); }
+    100% { transform: rotate(360deg); }
+  }
+  @keyframes rotate-reverse {
+    0% { transform: rotate(0); }
+    100% { transform: rotate(-360deg); }
+  }
+  @keyframes move {
+    0% { transform: translateY(0%) rotate(0) scale(1); }
+    20% { transform: translateY(20%) rotate(10deg) scale(1.2); }
+    80% { transform: translateY(-10%) rotate(-20deg) scale(.8);}
+    100% { transform: translateY(0) rotate(0) scale(1); }
+  }
+
+  .progress {
+    position: fixed;
+    left: 0; top: 0;
+    width: 0;
+    height: 3px;
+    background-color: green;
+    transition: all cubic-bezier(0.215, 0.610, 0.355, 1) .1s;
+    z-index: 9999;
+  }
+
+  .to-up {
+    animation: toUp .5s 1;
+  }
+  @keyframes toUp {
+    from { transform: translateY(15px); opacity: 0; }
+    to { transform: translateY(0) ; opacity: 1; }
+  }
+</style>
+<body>
+  <div id="load" class="load">
+    <div class="load-circle">
+      <div class="load-circle-inner"></div>
+    </div>
+    <p class="load-text">
+      <span>L</span>
+      <span>O</span>
+      <span>A</span>
+      <span>D</span>
+      <span>I</span>
+      <span>N</span>
+      <span>G</span>
+    </p>
+  </div>
+  <div id="container" class="container w-100 vh-100" style="display: none;">
+    <header class="header">
+  <div class="header-wrapper">
+    <div class="header-left">
+      <div class="header-search">
+        <input id="search-input" type="text" class="header-search--input" placeholder="请输入要检索的文章标题" />
+        <span id="search-btn" class="header-search--icon"><i class="iconfont icon-sousuo"></i></span>
+      </div>
+      <div id="search-layer" class="header-search--layer hidden">
+        <p class="title">
+          <span>以下是搜索内容：</span>
+          <span id="close-layer-btn">关闭</span>
+        </p>
+        <ul>
+        </ul>
+      </div>
+    </div>
+    <div class="header-right">
+      <ul class="header-menu">
+        <li>
+          <a href="/">
+            <i class="header-menu--icon iconfont icon-shouye"></i>
+            <span class="header-menu--span">首页</span>
+          </a>
+        </li>
+        <li>
+          <a href="/log">
+            <i class="header-menu--icon iconfont icon-rizhi"></i>
+            <span class="header-menu--span">日志</span>
+          </a>
+        </li>
+        <li>
+          <a href="/link">
+            <i class="header-menu--icon iconfont icon-youqinglianjie"></i>
+            <span class="header-menu--span">友情链接</span>
+          </a>
+        </li>
+        <li>
+          <a href="/about">
+            <i class="header-menu--icon iconfont icon-guanyuwomen"></i>
+            <span class="header-menu--span">关于我</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</header>
+
+<script>
+  const ipt = document.querySelector('#search-input')
+  const btn = document.querySelector('#search-btn')
+  const layer = document.querySelector('#search-layer')
+  const posts = JSON.parse(`[{"title":"hexo 搭建博客","path":"2022/08/24/hexo/20220824 hexo搭建博客/"},{"title":"发起集中授权任务及捞任务操作步骤","path":"2022/07/26/docs/业务知识/20220726 发起集中授权任务及捞任务操作步骤/"},{"title":"影像上传概念(from蒋贤欧)","path":"2022/07/27/docs/业务知识/20220727 影像上传概念(from蒋贤欧)/"},{"title":"授权报文解析","path":"2022/07/27/docs/业务知识/20220727 授权报文解析/"},{"title":"API事件处理","path":"2022/08/18/docs/公共模块方法/20220818 API事件处理/"},{"title":"前端问题解决方案编写规范","path":"2022/07/21/docs/前端规范/20220721 前端问题解决方案文档编写规范/"},{"title":"凭证打印实现流程","path":"2022/07/20/docs/公共模块方法/20220720 凭证打印实现流程/"},{"title":"hexo 搭建博客","path":"2022/08/24/docs/其他/20220824 hexo搭建博客/"},{"title":"缺少jQuery问题","path":"2022/07/18/docs/常见问题/20220718 缺少jQuery问题/"},{"title":"集中授权捞任务暂停问题解决","path":"2022/07/19/docs/常见问题/20220719 解决集中授权捞任务暂停问题/"},{"title":"集中授权样式覆盖问题","path":"2022/07/18/docs/常见问题/20220718 集中授权样式覆盖问题/"},{"title":"子工程启动项目","path":"2022/07/21/docs/常见问题/20220721 子工程启动项目/"},{"title":"代码平台合并分支遇到的代码冲突问题解决","path":"2022/07/21/docs/常见问题/20220721 解决代码合并冲突问题/"},{"title":"工程关系","path":"2022/07/27/docs/常见问题/20220727 工程关系/"},{"title":"主工程与子工程打包","path":"2022/07/28/docs/常见问题/20220728 主工程与子工程打包/"},{"title":"影像上传技术分析","cover":"images/bg07.jpeg","path":"2022/08/19/docs/业务知识/20220819 影像上传技术分析(整理中...)/"},{"title":"工程、模块、交易、组件的关系","path":"2022/07/28/docs/常见问题/20220728 工程、模块、交易、组件的关系/"},{"title":"主工程启动子工程项目","path":"2022/08/02/docs/常见问题/20220802 主工程里启动子工程项目/"},{"title":"菜单配置流程","path":"2022/07/28/docs/常见问题/20220728 菜单配置流程/"}]`)
+  ipt.addEventListener('keyup', e => {
+    if (e.key === 'Enter') {
+      handleSearch()
+    }
+  })
+  btn.addEventListener('click', () => {
+    handleSearch()
+  })
+
+  document.querySelector('#close-layer-btn').addEventListener('click', () => {
+    layer.classList.toggle('hidden')
+  })
+
+  function handleSearch() {
+    if (ipt.value.trim() === '') {
+      return
+    }
+    let html = ''
+    const targetPosts = posts.filter(post => post.title.includes(ipt.value))
+    targetPosts.forEach(post => {
+      html += `
+        <li>
+          <div>
+            <a href="/${post.path}">${post.title.replace(new RegExp(ipt.value), `<span>${ipt.value}</span>`)}</a>
+          </div>
+          <img src="${post.cover || '/imgs/default-cover.webp' }" />
+        </li>
+      `
+    })
+    if (html.trim () === '') {
+      html += '<p class="empty">没有搜索到内容</p>'
+    }
+    layer.querySelector('ul').innerHTML = html
+    layer.classList.remove('hidden')
+  }
+</script> 
+    <section id="main" class="main">
+      <div class="main-left-wrapper">
+<div class="main-left">
+  <div class="main-left--block">
+    <div class="main-left--info">
+      <img src="/imgs/avatar.jpg"" class="main-left--avatar" />
+      <div class="main-left--intro">
+        <p class="main-left--name">Mad Dragon</p>
+        <div class="main-left--tags">
+          <span class="main-left--tag">帅</span>
+          <span class="main-left--tag">呵呵</span>
+        </div>
+      </div>
+    </div>
+  
+    <div>
+      <div class="main-left--motto">
+        <p>“花有重开日，人无再少年”</p>
+        <p>“一个简单普通的男孩”</p>
+      </div>
+      <div class="main-left--github">
+        <span class="line"></span>
+        <a target="_blank" rel="noopener" href="https://github.com/520wsl"><i class="logo iconfont icon-github-fill"></i></a>
+        <span class="line"></span>
+      </div>
+      <div class="main-left--statics">
+        <a href="/categories">
+          <div>
+            <span>3</span>
+            <span>分类</span>
+          </div>
+        </a>
+        <a href="/tags">
+          <div>
+            <span>5</span>
+            <span>标签</span>
+          </div>
+        </a>
+        <a href="/archives">
+          <div>
+            <span>2 </span>
+            <span>归档</span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-left--block">
+    <ul class="main-left--menu">
+      
+        <li>
+          <a href="/">
+            <span class="header-menu--span">小站首页</span>
+            <i class="header-menu--icon iconfont icon-shouye"></i>
+          </a>
+        </li>
+      
+        <li>
+          <a href="/log">
+            <span class="header-menu--span">个人日志</span>
+            <i class="header-menu--icon iconfont icon-rizhi"></i>
+          </a>
+        </li>
+      
+        <li>
+          <a href="/link">
+            <span class="header-menu--span">友情链接</span>
+            <i class="header-menu--icon iconfont icon-youqinglianjie"></i>
+          </a>
+        </li>
+      
+        <li>
+          <a href="/about">
+            <span class="header-menu--span">关于自己</span>
+            <i class="header-menu--icon iconfont icon-guanyuwomen"></i>
+          </a>
+        </li>
+      
+        <li>
+          <a href="/tools">
+            <span class="header-menu--span">我的工具</span>
+            <i class="header-menu--icon iconfont icon-gongju"></i>
+          </a>
+        </li>
+      
+    </ul>
+  </div>
+
+  <div class="main-left--block">
+    <div class="main-left--site">
+      <h5 class="main-left--title">
+        <span>站点信息</span>
+        <i class="iconfont icon-zhandian"></i>
+      </h5>
+      <p class="main-left--subtitle">
+        <span>文章数目：</span>
+        <span>19 篇</span>
+      </p>
+      <p class="main-left--subtitle">
+        <span>最近动态：</span>
+        <span>今天</span>
+      </p>
+      <p class="main-left--subtitle">
+        <span>上线时间：</span>
+        <span>1天</span>
+      </p>
+      <p class="main-left--subtitle">
+        <span>当前版本：</span>
+        <span>v0.0.1</span>
+      </p>
+    </div>
+  </div>
+</div></div>
+      <div id="main-container" class="main-container">
+
+
+  <style>
+pre::-webkit-scrollbar {
+  width: 5px;
+  height: 10px;
+  background-color:#F5F5F5;
+}
+/*定义滚动条轨道
+内阴影+圆角*/
+pre::-webkit-scrollbar-track {
+  background-color:#F5F5F5;
+}
+/*定义滑块
+内阴影+圆角*/
+pre::-webkit-scrollbar-thumb {
+  background-color: rgb(69, 83, 100);
+}
+
+pre:active {
+  background-color: rgb(81, 95, 116);
+}
+</style>
+
+<div class="article-container">
+  <div class="article">
+    <h1 class="article-title">影像上传技术分析</h1>
+    <div class="article-info">
+      <div class="article-info--item">
+        <div class="article-info--info">
+          
+          <div class="article-info--categories">
+            <span>分类：</span>
+            <a class="category-link" href="/categories/%E6%80%BB%E7%BB%93/">总结</a>
+          </div>
+          
+          
+          <div class="article-info--tags">
+            <span>标签：</span>
+            <a class="tag-link" href="/tags/fox/" rel="tag">fox</a><a class="tag-link" href="/tags/vuejs/" rel="tag">vuejs</a><a class="tag-link" href="/tags/work/" rel="tag">work</a>
+          </div>
+          
+          <p class="article-info--date">日期：2022-08-19 15:09:00</p>
+        </div>
+        <img src="/images/bg07.jpeg" alt="" class="article-cover">
+      </div>
+    </div>
+    <article class="article-content">
+      <h1 id="影像上传技术分析"><a href="#影像上传技术分析" class="headerlink" title="影像上传技术分析"></a>影像上传技术分析</h1><h2 id="001影像挂载"><a href="#001影像挂载" class="headerlink" title="001影像挂载"></a>001影像挂载</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br></pre></td><td class="code"><pre><span class="line">&lt;!DOCTYPE html&gt;</span><br><span class="line">&lt;html lang=&quot;zh_CN&quot;&gt;</span><br><span class="line">&lt;head&gt;</span><br><span class="line">    &lt;meta charset=&quot;UTF-8&quot;&gt;</span><br><span class="line">    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;</span><br><span class="line">    &lt;meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;ie=edge&quot;&gt;</span><br><span class="line">    &lt;script type=&quot;text/javascript&quot; src=&quot;./plugins/jquery/jquery-1.11.3.js&quot;&gt;&lt;/script&gt;</span><br><span class="line">    &lt;script type=&quot;text/javascript&quot; src=&quot;./plugins/pdf/pdf.min.js&quot;&gt;&lt;/script&gt;</span><br><span class="line">    &lt;link href=&quot;sunscan-js-main.min.css&quot; rel=&quot;stylesheet&quot;&gt;</span><br><span class="line">    &lt;style&gt;</span><br><span class="line">        html,</span><br><span class="line">        body &#123;</span><br><span class="line">            height: 100%;</span><br><span class="line">        &#125;</span><br><span class="line">    &lt;/style&gt;</span><br><span class="line">&lt;/head&gt;</span><br><span class="line"></span><br><span class="line">&lt;body&gt;</span><br><span class="line">&lt;div id=&quot;view&quot; style=&quot;height: 100%;position: relative;bottom: 0px;left: 0px;right: 0px;top: 0px;&quot;&gt;&lt;/div&gt;</span><br><span class="line">&lt;script&gt;</span><br><span class="line">    var height = (window.screen.availHeight - 50 - 25 - 35 - 15) * 0.7 - 30 + &quot;px&quot;;</span><br><span class="line">    var width = Math.ceil((window.screen.availWidth) * 0.98 * 0.65) + &quot;px&quot;;</span><br><span class="line">    // 建立本地影像控件连接</span><br><span class="line">    var options = &#123;</span><br><span class="line">        element: document.getElementById(&#x27;view&#x27;),</span><br><span class="line">        host: &#x27;ws://127.0.0.1:17000/ws&#x27;,</span><br><span class="line">        height: height,</span><br><span class="line">        width: width</span><br><span class="line">    &#125;</span><br><span class="line">    // 连接影像平台地址信息</span><br><span class="line">    var tradeXml = &quot;&lt;?xml version=&#x27;1.0&#x27; encoding=&#x27;GB2312&#x27;?&gt;&lt;root&gt;&lt;business appid=&#x27;sunscan&#x27; tradecode=&#x27;js&#x27; optiontype=&#x27;0&#x27; isenc=&#x27;0&#x27;&gt;&lt;node theme=&#x27;0001&#x27;&gt;&lt;bsinf attr=&#x27;BUSI_SERIAL_NO&#x27; disp=&#x27;批次号&#x27; isquery=&#x27;1&#x27;&gt;20200413000002&lt;/bsinf&gt;&lt;bsinf attr=&#x27;CREATEDATE&#x27; disp=&#x27;业务开始日期&#x27; isquery=&#x27;1&#x27;&gt;20210831&lt;/bsinf&gt;&lt;/node&gt;&lt;/business&gt;&lt;/root&gt;&quot;</span><br><span class="line">    // 初始化影像目录</span><br><span class="line">    var initDir = &quot;&lt;?xml version=&#x27;1.0&#x27; encoding=&#x27;GB2312&#x27;?&gt;&lt;root&gt;&lt;tree appid=&#x27;sunscan&#x27; tradecode=&#x27;js&#x27; theme=&#x27;0001&#x27;&gt;&lt;node name=&#x27;IMAGE&#x27; desc=&#x27;影像&#x27; isimage=&#x27;1&#x27; barcode=&#x27;&#x27; forms=&#x27;&#x27; attri=&#x27;0&#x27; isauth=&#x27;1111&#x27; issuc=&#x27;0&#x27;&gt;&lt;/node&gt;&lt;/tree&gt;&lt;/root&gt;&quot;</span><br><span class="line">    // -- 字段解析 --</span><br><span class="line">    // tree 目录树总结点信息</span><br><span class="line">    // appid 应用号</span><br><span class="line">    // theme 目录树编号</span><br><span class="line">    // node 目录树节点信息</span><br><span class="line">    // name 节点key值</span><br><span class="line">    // isimage 是否下挂影像 1 不允许下挂 2 允许下挂影像</span><br><span class="line">    // attri 目录树上节点的属性， 0 目录层级 1 资料层级</span><br><span class="line">    // barcode 条码分类值  10010 906010010457</span><br><span class="line">    // forms 版面分类值 身份证</span><br><span class="line">    // isauth 节点权限掩码  查询、增加、删除、替换 0 无权限 1 有权限</span><br><span class="line">    // isauth=&#x27;1111&#x27; 都有权限 isauth=‘0111’ 不允许查询</span><br><span class="line">    // issuc 是否完备性检查</span><br><span class="line">    //     var initDir =`&lt;?xml version=&#x27;1.0&#x27; encoding=&#x27;GB2312&#x27;?&gt;</span><br><span class="line">    // &lt;root&gt;</span><br><span class="line">    //    &lt;tree appid=&#x27;sunscan&#x27; tradecode=&#x27;js&#x27; theme=&#x27;0001&#x27;&gt;</span><br><span class="line">    //         &lt;node name=&#x27;IMAGE&#x27; desc=&#x27;影像&#x27; isimage=&#x27;1&#x27; barcode=&#x27;&#x27; forms=&#x27;&#x27; attri=&#x27;0&#x27; isauth=&#x27;1111&#x27; issuc=&#x27;0&#x27;&gt;</span><br><span class="line">    //             &lt;node name=&#x27;10067&#x27; desc=&#x27;营业执照&#x27; isimage=&#x27;2&#x27; barcode=&#x27;&#x27; forms=&#x27;0021000001006000&#x27; attri=&#x27;1&#x27; isauth=&#x27;1111&#x27; issuc=&#x27;0&#x27;/&gt;</span><br><span class="line">    //             &lt;node name=&#x27;10002&#x27; desc=&#x27;机构信用代码证&#x27; isimage=&#x27;2&#x27; barcode=&#x27;&#x27; forms=&#x27;0021000001005000&#x27; attri=&#x27;1&#x27; isauth=&#x27;1111&#x27; issuc=&#x27;0&#x27;/&gt;</span><br><span class="line">    //             &lt;node name=&#x27;10048&#x27; desc=&#x27;基本户开户许可证&#x27; isimage=&#x27;2&#x27; barcode=&#x27;&#x27; forms=&#x27;0021000001002000&#x27; attri=&#x27;1&#x27; isauth=&#x27;1111&#x27; issuc=&#x27;0&#x27;/&gt;</span><br><span class="line">    //             &lt;node name=&#x27;K005&#x27; desc=&#x27;外商投资批准证书&#x27; isimage=&#x27;2&#x27; barcode=&#x27;&#x27; forms=&#x27;0021000001003000&#x27; attri=&#x27;1&#x27; isauth=&#x27;1111&#x27; issuc=&#x27;1&#x27;/&gt;</span><br><span class="line">    //             &lt;node name=&#x27;K003&#x27; desc=&#x27;照片&#x27; isimage=&#x27;2&#x27; barcode=&#x27;&#x27; forms=&#x27;0021000001008000&#x27; attri=&#x27;1&#x27; isauth=&#x27;1111&#x27; issuc=&#x27;0&#x27; /&gt;</span><br><span class="line">    //             &lt;node name=&#x27;OTHER&#x27; desc=&#x27;其他&#x27; isimage=&#x27;2&#x27; barcode=&#x27;&#x27; forms=&#x27;0021000001007000&#x27; attri=&#x27;1&#x27; isauth=&#x27;1111&#x27; issuc=&#x27;0&#x27;/&gt;</span><br><span class="line">    //         &lt;/node&gt;</span><br><span class="line">    //     &lt;/tree&gt;</span><br><span class="line">    // &lt;/root&gt;`</span><br><span class="line">    // 设置工具栏</span><br><span class="line">    var td0037_VIEW = &quot;&lt;?xml version=&#x27;1.0&#x27; encoding=&#x27;GB2312&#x27; ?&gt;&lt;root&gt;&lt;head&gt;&lt;transcode&gt;td0037&lt;/transcode&gt;&lt;/head&gt;&lt;body&gt;&lt;param&gt;1111111111111110010000000000000000&lt;/param&gt;&lt;param&gt;0000000&lt;/param&gt;&lt;/body&gt;&lt;/root&gt;&quot;</span><br><span class="line">    var td0037_EDIT = &quot;&lt;?xml version=&#x27;1.0&#x27; encoding=&#x27;GB2312&#x27; ?&gt;&lt;root&gt;&lt;head&gt;&lt;transcode&gt;td0037&lt;/transcode&gt;&lt;/head&gt;&lt;body&gt;&lt;param&gt;111111111111111111111111111111111111111111111111111&lt;/param&gt;&lt;param&gt;1111111111111111111111111111111111111111&lt;/param&gt;&lt;param&gt;111111111&lt;/param&gt;&lt;/body&gt;&lt;/root&gt;&quot;</span><br><span class="line">    // 设置控件参数</span><br><span class="line">    // &lt;param name=&#x27;scanduplex&#x27;&gt;1&lt;/param&gt;&lt;param name=&#x27;masternum&#x27;&gt;0&lt;/param&gt;&lt;param name=&#x27;sonnum&#x27;&gt;0&lt;/param&gt;</span><br><span class="line">    var td0010 = &quot;&lt;?xml version=&#x27;1.0&#x27; encoding=&#x27;GB2312&#x27; ?&gt;&lt;root&gt;&lt;head&gt;&lt;transcode&gt;td0010&lt;/transcode&gt;&lt;/head&gt;&lt;body&gt;&lt;param name=&#x27;isaddshowfirst&#x27; &gt;1&lt;/param&gt;&lt;param name=&#x27;shownails&#x27;&gt;0&lt;/param&gt;&lt;param name=&#x27;isqryshowfirst&#x27;&gt;1&lt;/param&gt;&lt;param name=&#x27;issourcename&#x27;&gt;1&lt;/param&gt;&lt;/body&gt;&lt;/root&gt;&quot;</span><br><span class="line">    // 获取影像控件安装目录</span><br><span class="line">    var td0080 = &quot;&lt;?xml version=&#x27;1.0&#x27; encoding=&#x27;GB2312&#x27; ?&gt;&lt;root&gt;&lt;head&gt;&lt;transcode&gt;td0080&lt;/transcode&gt;&lt;/head&gt;&lt;/root&gt;&quot;</span><br><span class="line">    // 清空影像控件图片</span><br><span class="line">    var td0050 = &quot;&lt;?xml version=&#x27;1.0&#x27; encoding=&#x27;GB2312&#x27;?&gt;&lt;root&gt;&lt;head&gt;&lt;transcode&gt;td0050&lt;/transcode&gt;&lt;/head&gt;&lt;body&gt;&lt;param&gt;1&lt;/param&gt;&lt;/body&gt;&lt;/root&gt;&quot;</span><br><span class="line">    // 设置首张图片</span><br><span class="line">    var td0033 = &quot;&lt;?xml version=&#x27;1.0&#x27; encoding=&#x27;GB2312&#x27; ?&gt;&lt;root&gt;&lt;head&gt;&lt;transcode&gt;td0033&lt;/transcode&gt;&lt;/head&gt;&lt;body&gt;&lt;param&gt;0&lt;/param&gt;&lt;/body&gt;&lt;/root&gt;&quot;</span><br><span class="line">    //刷新影像</span><br><span class="line">    var td0070 = &quot;&lt;?xml version=&#x27;1.0&#x27; encoding=&#x27;GB2312&#x27; ?&gt;&lt;root&gt;&lt;head&gt;&lt;transcode&gt;td0070&lt;/transcode&gt;&lt;/head&gt;&lt;body&gt;&lt;param&gt;1&lt;/param&gt;&lt;/body&gt;&lt;/root&gt;&quot;</span><br><span class="line">    // 设置影像图片例子</span><br><span class="line">    // var images = &quot;&lt;?xml version=&#x27;1.0&#x27; encoding=&#x27;GB2312&#x27; ?&gt;&lt;root&gt;&lt;head&gt;&lt;transcode&gt;td0048&lt;/transcode&gt;&lt;/head&gt;&lt;body&gt;&lt;param url=&#x27;http://158.220.182.217:8081/SunECMDM/servlet/getFile?s/lV3bcibQiD8sffKRW+dMqpL8nzApWTnvz/WtDatAEF/vhJ8MGot1VIhGCDgFKQAt20qvLZB3M20MLUPlQH05qtYk0H7DV/+pmYS/KtdPpLVvQTeIG9N8wUhnWyNNR6W5JmxSJCKayBvTFoupbs1byHOGaokL37C2pbxOSyeoBg3OYEaMyG/CdE5kIDsVjCYgQFhakGbaMyKJ8ORHKZoYjFBnsnbj6opHkQ9drmoEqx8Yn2BzfAteO99ctMIZerWKdQCK4is7KoeiCAl9rJqzZxWL4lw6wuPfUVbK42j5lur+JirJErCqhh/gGozKtwbN9qJNtYVEQ=&#x27; fileform=&#x27;IMAGE&#x27;&gt;&lt;/param&gt;&lt;/body&gt;&lt;/root&gt;&quot;</span><br><span class="line">    var images = `&lt;?xml version=&#x27;1.0&#x27; encoding=&#x27;GB2312&#x27; ?&gt;</span><br><span class="line">    &lt;root&gt;</span><br><span class="line">        &lt;head&gt;</span><br><span class="line">            &lt;transcode&gt;td0048&lt;/transcode&gt;</span><br><span class="line">        &lt;/head&gt;</span><br><span class="line">        &lt;body&gt;</span><br><span class="line">            &lt;param url=&#x27;http://158.222.166.95:8080/dip/getFile?gFBqkAzS1PcC388pcAkODM04HtGJp/o6XVtOIaFc01jZH6PSer4DoElUQcPih69C7wuDxppWrVAvDhIIgqyAIo7FMMmn1YHkp96gVEq1TT1HOBvozhTUtOWC72J12vJwfdvB1VZ2/T1fS6qiP0Y6cufXwrp+7HuajONhqFBWT1HdBa+k1q7eV2c5jpZeexWSlIx9uVDOcrI4KWrhvWMq7XPRMbqZ/ZD7PTCR2Arm16KHuw/Q6onQCicpBWPM9QfIps3eHGFrt2kTcby6UfiGlJE0NbnxeYkD&#x27;</span><br><span class="line">                fileform=&#x27;10067&#x27;&gt;D:\\SunScan\\data\\tmp\\OCR本人身份证人像面001-00001-fr.jpg&lt;/param&gt;</span><br><span class="line">            &lt;param url=&#x27;http://158.222.166.95:8080/dip/getFile?gFBqkAzS1PcC388pcAkODM04HtGJp/o6XVtOIaFc01gUcQaNXOGoSgukmSdD7FJ27wuDxppWrVB/ZLVNnQebf47FMMmn1YHkp96gVEq1TT1HOBvozhTUtOWC72J12vJwfdvB1VZ2/T1fS6qiP0Y6cufXwrp+7HuajONhqFBWT1HdBa+k1q7eV2c5jpZeexWSlIx9uVDOcrKyolPzNMFlLnPRMbqZ/ZD7PTCR2Arm16KHuw/Q6onQCicpBWPM9QfIps3eHGFrt2kTcby6UfiGlJE0NbnxeYkD&#x27;</span><br><span class="line">                fileform=&#x27;10002&#x27;&gt;D:\\SunScan\\data\\tmp\\OCR本人身份证国徽面001-00002-fr.jpg&lt;/param&gt;</span><br><span class="line">            &lt;param url=&#x27;http://158.222.166.95:8080/dip/getFile?gFBqkAzS1PcC388pcAkODK2Wc+faNYYUpdLHcCjOFdv/rabsNKHnHX1JkXcycx5jY8X5rqI/f43PODYSMO9l2l6s8H0nmEHAjGi+hCq9gY89OTpMK31MxvNMiirE2Roywlh3835auI6FFWJLl4a7v+Xk/LmSRa4WWiFYaR3JEDFl+6FwNo3FqOIw4byzTBXyEPqeIi41Qac/0g5q3AdoG4cVXiU5dk0eilliJPdPV46AhF4fp2MJ5Qiac4FAmPy5MqeC3jVkeZMOLlF0Jc3o8Q==&#x27;</span><br><span class="line">                fileform=&#x27;10048&#x27;&gt;D:\\SunScan\\data\\tmp\\本人联网核查照片001-00003-fr.jpg&lt;/param&gt;</span><br><span class="line">            &lt;param url=&#x27;http://158.222.166.95:8080/dip/getFile?gFBqkAzS1PcC388pcAkODM04HtGJp/o6jWsn+ReQkV5TGaDarsxOTaquCNhNFocyk1R01Ril2aE7S/xoxc9gUKwy9vfJ63rMEGlhZ9AoNmeUE7Flb6wIV55RJGT1CJLHAG2FUPYvkYhzDeRpBn5c5oYfx7LNt9WlDloSFvi9ZhNzlWhd7pvT859RkbYvK/gRvkwtC9Np9+hTB3pmpQVdK/nlOc7zlcCb/YjBOpPvBoU7mmdjpIHE9CcIBY47p/DbvOJQtUsYq36YvPwIXdxdAsP/7oYSw118&#x27;</span><br><span class="line">                fileform=&#x27;10048&#x27;&gt;D:\\SunScan\\data\\tmp\\OCR代理人身份证人像面001-00004-fr.jpg&lt;/param&gt;</span><br><span class="line">            &lt;param url=&#x27;http://158.222.166.95:8080/dip/getFile?gFBqkAzS1PcC388pcAkODM04HtGJp/o6jWsn+ReQkV5TGaDarsxOTRJpk5rBfiIIk1R01Ril2aG88yd8l/qUpKwy9vfJ63rMEGlhZ9AoNmeUE7Flb6wIV55RJGT1CJLHAG2FUPYvkYhzDeRpBn5c5oYfx7LNt9WlDloSFvi9ZhNzlWhd7pvT859RkbYvK/gRvkwtC9Np9+i0uey9+hZ5fvnlOc7zlcCb/YjBOpPvBoU7mmdjpIHE9CcIBY47p/DbvOJQtUsYq36YvPwIXdxdAsP/7oYSw118&#x27;</span><br><span class="line">                fileform=&#x27;10048&#x27;&gt;D:\\SunScan\\data\\tmp\\OCR代理人身份证国徽面001-00005-fr.jpg&lt;/param&gt;</span><br><span class="line">            &lt;param url=&#x27;http://158.222.166.95:8080/dip/getFile?gFBqkAzS1PcC388pcAkODPYn2btBPzrEqobu8sh08TxpKYmf6L5VqUq6zXn8241A7wuDxppWrVADUhwrv68bSY7FMMmn1YHkp96gVEq1TT1HOBvozhTUtOWC72J12vJwfdvB1VZ2/T1fS6qiP0Y6cufXwrp+7HuajONhqFBWT1HdBa+k1q7eV2c5jpZeexWSYhkcaqI1awWLQYDSL2yI9HPRMbqZ/ZD7PTCR2Arm16KHuw/Q6onQCicpBWPM9QfIps3eHGFrt2kTcby6UfiGlJE0NbnxeYkD&#x27;</span><br><span class="line">                fileform=&#x27;10048&#x27;&gt;D:\\SunScan\\data\\tmp\\代理人联网核查照片001-00006-fr.jpg&lt;/param&gt;</span><br><span class="line">            &lt;param url=&#x27;http://158.222.166.95:8080/dip/getFile?gFBqkAzS1PcC388pcAkODM04HtGJp/o6TXQAXoyGzrdTGaDarsxOTaquCNhNFocyk1R01Ril2aG9rModJNDLO6wy9vfJ63rMEGlhZ9AoNmeUE7Flb6wIV55RJGT1CJLHAG2FUPYvkYhzDeRpBn5c5oYfx7LNt9WlDloSFvi9ZhNzlWhd7pvT859RkbYvK/gRvkwtC9Np9+hH3WiK+VcgwfnlOc7zlcCb/YjBOpPvBoU7mmdjpIHE9CcIBY47p/DbvOJQtUsYq36YvPwIXdxdAsP/7oYSw118&#x27;</span><br><span class="line">                fileform=&#x27;10048&#x27;&gt;D:\\SunScan\\data\\tmp\\OCR转出人身份证人像面001-00007-fr.jpg&lt;/param&gt;</span><br><span class="line">            &lt;param url=&#x27;http://158.222.166.95:8080/dip/getFile?gFBqkAzS1PcC388pcAkODM04HtGJp/o6TXQAXoyGzrdTGaDarsxOTRJpk5rBfiIIk1R01Ril2aFCrij3zkI93awy9vfJ63rMEGlhZ9AoNmeUE7Flb6wIV55RJGT1CJLHAG2FUPYvkYhzDeRpBn5c5oYfx7LNt9WlDloSFvi9ZhNzlWhd7pvT859RkbYvK/gRvkwtC9Np9+gb2kVR0+1fhvnlOc7zlcCb/YjBOpPvBoU7mmdjpIHE9CcIBY47p/DbvOJQtUsYq36YvPwIXdxdAsP/7oYSw118&#x27;</span><br><span class="line">                fileform=&#x27;10048&#x27;&gt;D:\\SunScan\\data\\tmp\\OCR转出人身份证国徽面001-00008-fr.jpg&lt;/param&gt;</span><br><span class="line">            &lt;param url=&#x27;http://158.222.166.95:8080/dip/getFile?gFBqkAzS1PcC388pcAkODMgNGgVrRhWEXCyFOaJ9o1ZpKYmf6L5VqUq6zXn8241A7wuDxppWrVDBrorFCLyvjY7FMMmn1YHkp96gVEq1TT1HOBvozhTUtOWC72J12vJwfdvB1VZ2/T1fS6qiP0Y6cufXwrp+7HuajONhqFBWT1HdBa+k1q7eV2c5jpZeexWSthnxAAHPri2yolPzNMFlLnPRMbqZ/ZD7PTCR2Arm16KHuw/Q6onQCicpBWPM9QfIps3eHGFrt2kTcby6UfiGlJE0NbnxeYkD&#x27;</span><br><span class="line">                fileform=&#x27;10048&#x27;&gt;D:\\SunScan\\data\\tmp\\转出人联网核查照片001-00009-fr.jpg&lt;/param&gt;</span><br><span class="line">        &lt;/body&gt;</span><br><span class="line">    &lt;/root&gt;`</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * @Description :  这个方法影像插件中会引用到，不能删，命名也不能改</span><br><span class="line">     * @Date : 2021-10-13 11:23:38</span><br><span class="line">     */</span><br><span class="line">    function JScallbackProc(paramXml) &#123;</span><br><span class="line">        return paramXml;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * @Description : 初始化并渲染影像控件界面</span><br><span class="line">     * @Date : 2021-10-13 11:15:11</span><br><span class="line">     */</span><br><span class="line">    function init() &#123;</span><br><span class="line">        try &#123;</span><br><span class="line">            // 新建Sunscan影像控件JS</span><br><span class="line">            var initSunScan = new SunScanJS(options).CreateSunScan(&#x27;sunscan&#x27;, &#x27;js&#x27;);</span><br><span class="line">            // 将该JS对象设置为该页面全局有效</span><br><span class="line">            window.initSunScan = initSunScan;</span><br><span class="line">            // 调用影像控件方法</span><br><span class="line">            initSunScan.then((sunscan) =&gt; &#123;</span><br><span class="line">                // 展示影像控件</span><br><span class="line">                sunscan.ShowSunScan(tradeXml, initDir).then(() =&gt; &#123;</span><br><span class="line">                    // 初始化控件工具栏</span><br><span class="line">                    sunscan.CommOcxFunction(td0037_VIEW);</span><br><span class="line">                    // 设置控件参数</span><br><span class="line">                    sunscan.CommOcxFunction(td0010);</span><br><span class="line">                &#125;)</span><br><span class="line">            &#125;)</span><br><span class="line">        &#125; catch (error) &#123;</span><br><span class="line">            console.log(error);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * @Description :  页面加载的时候调用init方法</span><br><span class="line">     * @Date : 2021-10-13 11:23:09</span><br><span class="line">     */</span><br><span class="line">    window.onload = init</span><br><span class="line">    /**</span><br><span class="line">     * @Description :  添加当前页面全局消息监听</span><br><span class="line">     * @Date : 2021-10-13 11:23:26</span><br><span class="line">     */</span><br><span class="line">    window.addEventListener(&#x27;message&#x27;, function (event) &#123;</span><br><span class="line">        console.log(&quot;eventListenter execute type: &quot; + event.data.type);</span><br><span class="line">        // 调用影像控件方法</span><br><span class="line">        initSunScan.then((sunscan) =&gt; &#123;</span><br><span class="line">            // 判断当前传入的状态是否为删除</span><br><span class="line">            if (event.data.type &amp;&amp; event.data.type == &quot;reset&quot;) &#123;</span><br><span class="line">                sunscan.CommOcxFunction(td0050).then(() =&gt; &#123;</span><br><span class="line">                    console.log(&quot;eventListenter execute reset code : td0050&quot;);</span><br><span class="line">                    sunscan.ShowSunScan(tradeXml, initDir)</span><br><span class="line">                &#125;)</span><br><span class="line">            &#125; else if (event.data.type &amp;&amp; event.data.type == &#x27;edit&#x27;) &#123;</span><br><span class="line">                sunscan.ShowSunScan(tradeXml, initDir).then(() =&gt; &#123;</span><br><span class="line">                    // 初始化控件工具栏</span><br><span class="line">                    sunscan.CommOcxFunction(td0037_EDIT);</span><br><span class="line">                    // 设置控件参数</span><br><span class="line">                    // sunscan.CommOcxFunction(td0010);</span><br><span class="line">                &#125;)</span><br><span class="line">            &#125; else if (event.data.type &amp;&amp; event.data.type == &#x27;three&#x27;) &#123;</span><br><span class="line">                let three = event.data &amp;&amp; event.data.message || []</span><br><span class="line">                if (Array.isArray(three) &amp;&amp; three.length &gt; 0) &#123;</span><br><span class="line">                    let threeStr = three.map((item) =&gt; &#123;</span><br><span class="line">                        return ` &lt;node name=&#x27;$&#123;item.ImageNode&#125;&#x27; desc=&#x27;$&#123;item.ChineseDesc&#125;&#x27; isimage=&#x27;2&#x27; barcode=&#x27;&#x27; forms=&#x27;&#x27; attri=&#x27;1&#x27; isauth=&#x27;1111&#x27; issuc=&#x27;0&#x27;/&gt;`</span><br><span class="line">                    &#125;)</span><br><span class="line">                    initDir = `&lt;?xml version=&#x27;1.0&#x27; encoding=&#x27;GB2312&#x27;?&gt;</span><br><span class="line">    &lt;root&gt;</span><br><span class="line">       &lt;tree appid=&#x27;sunscan&#x27; tradecode=&#x27;js&#x27; theme=&#x27;0001&#x27;&gt;</span><br><span class="line">            &lt;node name=&#x27;IMAGE&#x27; desc=&#x27;影像&#x27; isimage=&#x27;1&#x27; barcode=&#x27;&#x27; forms=&#x27;&#x27; attri=&#x27;0&#x27; isauth=&#x27;1111&#x27; issuc=&#x27;0&#x27;&gt;</span><br><span class="line">                $&#123;threeStr.join(&#x27; &#x27;)&#125;</span><br><span class="line">            &lt;/node&gt;</span><br><span class="line">        &lt;/tree&gt;</span><br><span class="line">    &lt;/root&gt;`</span><br><span class="line">                    sunscan.ShowSunScan(tradeXml, initDir)</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                var installDir</span><br><span class="line">                sunscan.CommOcxFunction(td0080).then((response) =&gt; &#123;</span><br><span class="line">                    console.log(&quot;eventListenter execute other code : td0080&quot;);</span><br><span class="line">                    console.log(&quot;eventListenter execute other response : &quot; + response.xml);</span><br><span class="line">                    if (response.xml) &#123;</span><br><span class="line">                        var resultXMLDom = new DOMParser().parseFromString(response.xml, &quot;text/xml&quot;);</span><br><span class="line">                        // 获取XML渲染的第一个body标签内的内容</span><br><span class="line">                        var itemsDom = resultXMLDom.getElementsByTagName(&#x27;item&#x27;);</span><br><span class="line">                        // 将Dom的HTMLCollection转化为Array便于过滤筛选</span><br><span class="line">                        var itemsArr = [].concat(itemsDom)[0]</span><br><span class="line">                        for (var i = 0; i &lt; itemsArr.length; i++) &#123;</span><br><span class="line">                            // 判断当前标签是否存在</span><br><span class="line">                            if (itemsArr[i].getAttribute(&quot;name&quot;) &amp;&amp; itemsArr[i].getAttribute(&quot;name&quot;) == &quot;tmppath&quot;) &#123;</span><br><span class="line">                                installDir = itemsArr[i].textContent</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;).then(() =&gt; &#123;</span><br><span class="line">                    // 加载图片</span><br><span class="line">                    let loadImages = event.data.message.replace(/\=\=baseDir\=\=/g, installDir)</span><br><span class="line">                    console.log(&quot;eventListenter execute other code : td0048&quot;);</span><br><span class="line">                    console.log(loadImages)</span><br><span class="line">                    sunscan.CommOcxFunction(loadImages).then(() =&gt; &#123;</span><br><span class="line">                        console.log(&quot;eventListenter execute other code : td0033&quot;);</span><br><span class="line">                        sunscan.CommOcxFunction(td0070).then(() =&gt; &#123;</span><br><span class="line">                            sunscan.CommOcxFunction(td0033)</span><br><span class="line">                        &#125;)</span><br><span class="line">                    &#125;)</span><br><span class="line">                &#125;);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;)</span><br><span class="line">&lt;/script&gt;</span><br><span class="line">&lt;script type=&quot;text/javascript&quot; src=&quot;sunscan-js-main.min.js&quot;&gt;&lt;/script&gt;</span><br><span class="line">&lt;/body&gt;</span><br><span class="line"></span><br><span class="line">&lt;/html&gt;</span><br></pre></td></tr></table></figure>
+    </article>
+    
+    <div class="read-nums">
+      <!-- id 将作为查询条件 -->
+      <span id="2022/08/19/docs/业务知识/20220819 影像上传技术分析(整理中...)/" class="leancloud_visitors" data-flag-title="Your Article Title">
+        <em class="post-meta-item-text">浏览量</em>
+        <i class="leancloud-visitors-count"></i>
+      </span>
+    </div>
+    <div class="comments-intro">
+      <h2>评论区</h2>
+      <p>欢迎你留下宝贵的意见，昵称输入QQ号会显示QQ头像哦~</p>
+    </div>
+    <div id="vcomments" class="vcomments"></div>
+    
+  </div>
+  <div class="article-catelogue">
+    <div class="article-catelogue--wrapper">
+      <div class="catelogue catelogue-1">
+        <h3>目录</h3>
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%BD%B1%E5%83%8F%E4%B8%8A%E4%BC%A0%E6%8A%80%E6%9C%AF%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">影像上传技术分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#001%E5%BD%B1%E5%83%8F%E6%8C%82%E8%BD%BD"><span class="toc-number">1.1.</span> <span class="toc-text">001影像挂载</span></a></li></ol></li></ol>
+      </div>
+      
+        <div class="catelogue catelogue-2">
+          
+            <p>
+              <span>上一篇：</span>
+              <a href="/2022/08/24/docs/其他/20220824 hexo搭建博客/">hexo 搭建博客</a>
+            </p>
+           
+          
+            <p>
+              <span>下一篇</span>
+              <a href="/2022/08/18/docs/公共模块方法/20220818 API事件处理/">API事件处理</a>
+            </p>
+          
+        </div>
+      
+    </div>
+  </div>
+</div>
+
+<script src="/js/prism.js"></script>
+
+<script>
+  // var定义，避免pjax重新进来造成的重复声明错误
+  var config = JSON.parse('{"enable":true,"appId":"Pf8zCXGEH1qsprnWfikVVujL-gzGzoHsz","appKey":"qOqoiUHhH1TGtLRUYURkLRQX","placeholder":"请留下你宝贵的意见吧~","meta":["nick"],"recordIP":true,"visitor":true,"enableQQ":true}')
+  new Valine({
+    el: '#vcomments',
+    appId: config.appId,
+    appKey: config.appKey,
+    placeholder: config.placeholder,
+    meta: config.meta,
+    recordIP: config.recordIP,
+    visitor: config.visitor,
+    enableQQ: config.enableQQ,
+    path: '2022/08/19/docs/业务知识/20220819 影像上传技术分析(整理中...)/'
+  })
+</script>
+
+
+<script>
+  $(document).on('pjax:complete', function() {
+    const tocs = document.querySelector('.toc')
+    const as = tocs ? tocs.querySelectorAll('a') : []
+    as.forEach(a => {
+      a.addEventListener('click', e => {
+        const href = decodeURIComponent(a.href)
+        href.search(/#(.*)/)
+        const id = RegExp.$1
+        const target = document.querySelector('#' + id)
+        const top = target.offsetTop
+        document.documentElement.scrollTo({
+          top: top - 100,
+          behavior: 'smooth'
+        })
+        e.preventDefault()
+      })
+    })
+  })
+</script> 
+
+</div>
+      <div class="main-right-wrapper"><div class="main-right">
+  <div class="main-right--board">
+    <div class="main-right--title">
+      <h5>公告栏</h5>
+      <i class="iconfont icon-gonggao"></i>
+    </div>
+    <div class="main-right--content">
+      Hello~大噶好。唔系可乐爱宅着，欢迎你们来到我的博客小站，希望能在这里收获到有用的东西哦！ 
+    </div>
+  </div>
+
+  <div id="aplayer" class="main-right--music"></div>
+
+  <div class="operate-items">
+    <div class="operate-item backtop">
+      <i class="iconfont icon-huidaodingbu"></i>
+      <span>回到顶部</span>
+    </div>
+    
+    <div class="operate-item turn-comment hidden">
+      <i class="iconfont icon-pinglun"></i>
+      <span>查看评论</span>
+    </div>
+    
+  </div>
+
+  <div class="main-right--site">
+    <div class="main-right--power">
+      <p>Power By <a target="_blank" rel="noopener" href="https://hexo.io/zh-cn/docs/">Hexo</a>.</p>
+      <p>Theme：<a target="_blank" rel="noopener" href="https://github.com/Aizener/hexo-theme-cola">Cola.</a></p>
+    </div>
+    <p class="main-right--refer">xxxx </p>
+  </div>
+</div>
+
+<script>
+  function setOperateItem () {
+    const reg = /\d{4}\/\d{2}\/\d{2}\/.+/
+    const path = location.pathname
+    const commentDom = document.querySelector('.turn-comment')
+    if (commentDom) {
+      if (reg.test(path) || path.match(/\/log\/.+/)) {
+        commentDom.classList.remove('hidden')
+      } else {
+        commentDom.classList.add('hidden')
+      }
+    }
+  }
+
+  setOperateItem()
+  const musics = JSON.parse(`[{"name":"安河桥","artist":"宋冬野","url":"http://ting6.yymp3.net:82/new25/songdongye/11.mp3","cover":"https://img2.baidu.com/it/u=1260056724,1076343118&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=500"},{"name":"卡布达","artist":"暂无","url":"/music/kabuda.mp3","cover":"https://img2.baidu.com/it/u=705831265,2862720033&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=500"},{"name":"八连杀","artist":"苏三","url":"/music/八连杀.mp3","cover":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQo0SWQx6YrNA8lElaG4OOKLkNkNzLO1PflKg&usqp=CAU"}]`)
+  const ap = new APlayer({
+    container: document.querySelector('#aplayer'),
+    audio: musics,
+  })
+
+  $(document).on('pjax:complete', function() {
+    setOperateItem()
+  })
+
+  document.querySelector('.backtop').addEventListener('click', () => {
+    document.documentElement.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    })
+  })
+  const dom = document.querySelector('.turn-comment')
+  dom && dom.addEventListener('click', () => {
+    const commentDom = document.querySelector('.comments-intro')
+    if (!commentDom) return
+    const top = commentDom.offsetTop, height = commentDom.offsetHeight
+    document.documentElement.scrollTo({
+      top: top - 2 * height,
+      behavior: 'smooth'
+    })
+  })
+</script></div>
+    </section>
+  </div>
+  <div id="progress" class="progress"></div>
+
+  <script>
+    function initScroll () {
+      document.addEventListener('scroll', () => {
+        const doc = document.documentElement
+        const scrollTop = doc.scrollTop
+        const pageHeight = doc.offsetHeight
+        const clientHeight = doc.clientHeight
+        const ratio = scrollTop / (pageHeight - clientHeight)
+        const progress = document.querySelector('#progress')
+        const avatarImg = document.querySelector('.main-left--avatar')
+        progress.style.width = (100 * ratio) + '%'
+        avatarImg.style.transform = `rotate(${360 * ratio}deg)`
+      })
+    }
+
+
+    window.onload = function () {
+      setTimeout(() => {
+        $('#load').slideUp()
+        $('#container').slideToggle()
+        setTimeout(() => {
+          initScroll()
+          if (['/', '/log/', '/link/', '/about/', '/tools/'].includes(location.pathname) && window.innerWidth > 1200) {
+            init && init('container') // 水波纹动画
+          }
+        }, 500)
+      }, 500)
+    }
+    
+    // 对所有链接跳转事件绑定pjax容器container
+    $(document).pjax('a[target!=_blank]', '#main-container', {fragment:'#main-container', timeout:8000})
+
+    $(document).on('pjax:start', function() {
+      // $('.main-container').hide()
+    })
+    $(document).on('pjax:complete', function() {
+      $('.main-container').addClass('to-up').on('animationend', function() {
+        $(this).removeClass('to-up')
+      })
+    })
+    $(document).on('pjax:popstate', function() {
+      // $('.main-container').fadeIn()
+    })
+  </script>
+  
+</body>
+</html>

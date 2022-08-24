@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>520wsl | hexo 搭建博客 | 520wsl</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="shortcut icon" href="/imgs/shortcut-icon.ico" type="image/x-icon">
+
+  
+    <link rel="stylesheet" href="/css/public.css" />
+    <link rel="stylesheet" href="/css/layout.css" />
+    <link rel="stylesheet" href="/css/iconfont.css" />
+    <link rel="stylesheet" href="/css/APlayer.min.css" />
+    <script src="/js/APlayer.min.js"></script>
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/jquery.pjax.min.js"></script>
+  
+  <script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+  <script>
+    document.title = `520wsl | hexo 搭建博客`
+  </script>
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+<style>
+  .load {
+    width: 100%;
+    height: 100vh;
+    background-color: rgb(37, 35, 40);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 9999;
+  }
+  .load-circle {
+    width: 80px;
+    height: 80px;
+    border: 8px solid orange;
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: rotate 1s linear infinite;
+    filter: drop-shadow(0 0 3px orange);
+  }
+  .load-circle-inner {
+    width: 40px;
+    height: 40px;
+    border: 8px solid orange;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: rotate-reverse .5s linear infinite;
+  }
+  .load-text {
+    margin-top: 20px;
+    font-size: 24px;
+    color: orange;
+    display: flex;
+  }
+  .load-text span {
+    margin: 0 5px;
+    text-shadow: 5px 5px 5px orange;
+    animation: move 1s linear infinite;
+  }
+  .load-text span:nth-child(1) {
+    animation-delay: -0.6s;
+  }
+  .load-text span:nth-child(2) {
+    animation-delay: -0.5s;
+  }
+  .load-text span:nth-child(3) {
+    animation-delay: -0.4s;
+  }
+  .load-text span:nth-child(4) {
+    animation-delay: -0.3s;
+  }
+  .load-text span:nth-child(5) {
+    animation-delay: -0.2s;
+  }
+  .load-text span:nth-child(6) {
+    animation-delay: -0.1s;
+  }
+  @keyframes rotate {
+    0% { transform: rotate(0); }
+    100% { transform: rotate(360deg); }
+  }
+  @keyframes rotate-reverse {
+    0% { transform: rotate(0); }
+    100% { transform: rotate(-360deg); }
+  }
+  @keyframes move {
+    0% { transform: translateY(0%) rotate(0) scale(1); }
+    20% { transform: translateY(20%) rotate(10deg) scale(1.2); }
+    80% { transform: translateY(-10%) rotate(-20deg) scale(.8);}
+    100% { transform: translateY(0) rotate(0) scale(1); }
+  }
+
+  .progress {
+    position: fixed;
+    left: 0; top: 0;
+    width: 0;
+    height: 3px;
+    background-color: green;
+    transition: all cubic-bezier(0.215, 0.610, 0.355, 1) .1s;
+    z-index: 9999;
+  }
+
+  .to-up {
+    animation: toUp .5s 1;
+  }
+  @keyframes toUp {
+    from { transform: translateY(15px); opacity: 0; }
+    to { transform: translateY(0) ; opacity: 1; }
+  }
+</style>
+<body>
+  <div id="load" class="load">
+    <div class="load-circle">
+      <div class="load-circle-inner"></div>
+    </div>
+    <p class="load-text">
+      <span>L</span>
+      <span>O</span>
+      <span>A</span>
+      <span>D</span>
+      <span>I</span>
+      <span>N</span>
+      <span>G</span>
+    </p>
+  </div>
+  <div id="container" class="container w-100 vh-100" style="display: none;">
+    <header class="header">
+  <div class="header-wrapper">
+    <div class="header-left">
+      <div class="header-search">
+        <input id="search-input" type="text" class="header-search--input" placeholder="请输入要检索的文章标题" />
+        <span id="search-btn" class="header-search--icon"><i class="iconfont icon-sousuo"></i></span>
+      </div>
+      <div id="search-layer" class="header-search--layer hidden">
+        <p class="title">
+          <span>以下是搜索内容：</span>
+          <span id="close-layer-btn">关闭</span>
+        </p>
+        <ul>
+        </ul>
+      </div>
+    </div>
+    <div class="header-right">
+      <ul class="header-menu">
+        <li>
+          <a href="/">
+            <i class="header-menu--icon iconfont icon-shouye"></i>
+            <span class="header-menu--span">首页</span>
+          </a>
+        </li>
+        <li>
+          <a href="/log">
+            <i class="header-menu--icon iconfont icon-rizhi"></i>
+            <span class="header-menu--span">日志</span>
+          </a>
+        </li>
+        <li>
+          <a href="/link">
+            <i class="header-menu--icon iconfont icon-youqinglianjie"></i>
+            <span class="header-menu--span">友情链接</span>
+          </a>
+        </li>
+        <li>
+          <a href="/about">
+            <i class="header-menu--icon iconfont icon-guanyuwomen"></i>
+            <span class="header-menu--span">关于我</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</header>
+
+<script>
+  const ipt = document.querySelector('#search-input')
+  const btn = document.querySelector('#search-btn')
+  const layer = document.querySelector('#search-layer')
+  const posts = JSON.parse(`[{"title":"hexo 搭建博客","path":"2022/08/24/hexo/20220824 hexo搭建博客/"},{"title":"发起集中授权任务及捞任务操作步骤","path":"2022/07/26/docs/业务知识/20220726 发起集中授权任务及捞任务操作步骤/"},{"title":"影像上传概念(from蒋贤欧)","path":"2022/07/27/docs/业务知识/20220727 影像上传概念(from蒋贤欧)/"},{"title":"授权报文解析","path":"2022/07/27/docs/业务知识/20220727 授权报文解析/"},{"title":"API事件处理","path":"2022/08/18/docs/公共模块方法/20220818 API事件处理/"},{"title":"前端问题解决方案编写规范","path":"2022/07/21/docs/前端规范/20220721 前端问题解决方案文档编写规范/"},{"title":"凭证打印实现流程","path":"2022/07/20/docs/公共模块方法/20220720 凭证打印实现流程/"},{"title":"hexo 搭建博客","path":"2022/08/24/docs/其他/20220824 hexo搭建博客/"},{"title":"缺少jQuery问题","path":"2022/07/18/docs/常见问题/20220718 缺少jQuery问题/"},{"title":"集中授权捞任务暂停问题解决","path":"2022/07/19/docs/常见问题/20220719 解决集中授权捞任务暂停问题/"},{"title":"集中授权样式覆盖问题","path":"2022/07/18/docs/常见问题/20220718 集中授权样式覆盖问题/"},{"title":"子工程启动项目","path":"2022/07/21/docs/常见问题/20220721 子工程启动项目/"},{"title":"代码平台合并分支遇到的代码冲突问题解决","path":"2022/07/21/docs/常见问题/20220721 解决代码合并冲突问题/"},{"title":"工程关系","path":"2022/07/27/docs/常见问题/20220727 工程关系/"},{"title":"主工程与子工程打包","path":"2022/07/28/docs/常见问题/20220728 主工程与子工程打包/"},{"title":"影像上传技术分析","cover":"images/bg07.jpeg","path":"2022/08/19/docs/业务知识/20220819 影像上传技术分析(整理中...)/"},{"title":"工程、模块、交易、组件的关系","path":"2022/07/28/docs/常见问题/20220728 工程、模块、交易、组件的关系/"},{"title":"主工程启动子工程项目","path":"2022/08/02/docs/常见问题/20220802 主工程里启动子工程项目/"},{"title":"菜单配置流程","path":"2022/07/28/docs/常见问题/20220728 菜单配置流程/"}]`)
+  ipt.addEventListener('keyup', e => {
+    if (e.key === 'Enter') {
+      handleSearch()
+    }
+  })
+  btn.addEventListener('click', () => {
+    handleSearch()
+  })
+
+  document.querySelector('#close-layer-btn').addEventListener('click', () => {
+    layer.classList.toggle('hidden')
+  })
+
+  function handleSearch() {
+    if (ipt.value.trim() === '') {
+      return
+    }
+    let html = ''
+    const targetPosts = posts.filter(post => post.title.includes(ipt.value))
+    targetPosts.forEach(post => {
+      html += `
+        <li>
+          <div>
+            <a href="/${post.path}">${post.title.replace(new RegExp(ipt.value), `<span>${ipt.value}</span>`)}</a>
+          </div>
+          <img src="${post.cover || '/imgs/default-cover.webp' }" />
+        </li>
+      `
+    })
+    if (html.trim () === '') {
+      html += '<p class="empty">没有搜索到内容</p>'
+    }
+    layer.querySelector('ul').innerHTML = html
+    layer.classList.remove('hidden')
+  }
+</script> 
+    <section id="main" class="main">
+      <div class="main-left-wrapper">
+<div class="main-left">
+  <div class="main-left--block">
+    <div class="main-left--info">
+      <img src="/imgs/avatar.jpg"" class="main-left--avatar" />
+      <div class="main-left--intro">
+        <p class="main-left--name">Mad Dragon</p>
+        <div class="main-left--tags">
+          <span class="main-left--tag">帅</span>
+          <span class="main-left--tag">呵呵</span>
+        </div>
+      </div>
+    </div>
+  
+    <div>
+      <div class="main-left--motto">
+        <p>“花有重开日，人无再少年”</p>
+        <p>“一个简单普通的男孩”</p>
+      </div>
+      <div class="main-left--github">
+        <span class="line"></span>
+        <a target="_blank" rel="noopener" href="https://github.com/520wsl"><i class="logo iconfont icon-github-fill"></i></a>
+        <span class="line"></span>
+      </div>
+      <div class="main-left--statics">
+        <a href="/categories">
+          <div>
+            <span>3</span>
+            <span>分类</span>
+          </div>
+        </a>
+        <a href="/tags">
+          <div>
+            <span>5</span>
+            <span>标签</span>
+          </div>
+        </a>
+        <a href="/archives">
+          <div>
+            <span>2 </span>
+            <span>归档</span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-left--block">
+    <ul class="main-left--menu">
+      
+        <li>
+          <a href="/">
+            <span class="header-menu--span">小站首页</span>
+            <i class="header-menu--icon iconfont icon-shouye"></i>
+          </a>
+        </li>
+      
+        <li>
+          <a href="/log">
+            <span class="header-menu--span">个人日志</span>
+            <i class="header-menu--icon iconfont icon-rizhi"></i>
+          </a>
+        </li>
+      
+        <li>
+          <a href="/link">
+            <span class="header-menu--span">友情链接</span>
+            <i class="header-menu--icon iconfont icon-youqinglianjie"></i>
+          </a>
+        </li>
+      
+        <li>
+          <a href="/about">
+            <span class="header-menu--span">关于自己</span>
+            <i class="header-menu--icon iconfont icon-guanyuwomen"></i>
+          </a>
+        </li>
+      
+        <li>
+          <a href="/tools">
+            <span class="header-menu--span">我的工具</span>
+            <i class="header-menu--icon iconfont icon-gongju"></i>
+          </a>
+        </li>
+      
+    </ul>
+  </div>
+
+  <div class="main-left--block">
+    <div class="main-left--site">
+      <h5 class="main-left--title">
+        <span>站点信息</span>
+        <i class="iconfont icon-zhandian"></i>
+      </h5>
+      <p class="main-left--subtitle">
+        <span>文章数目：</span>
+        <span>19 篇</span>
+      </p>
+      <p class="main-left--subtitle">
+        <span>最近动态：</span>
+        <span>今天</span>
+      </p>
+      <p class="main-left--subtitle">
+        <span>上线时间：</span>
+        <span>1天</span>
+      </p>
+      <p class="main-left--subtitle">
+        <span>当前版本：</span>
+        <span>v0.0.1</span>
+      </p>
+    </div>
+  </div>
+</div></div>
+      <div id="main-container" class="main-container">
+
+
+  <style>
+pre::-webkit-scrollbar {
+  width: 5px;
+  height: 10px;
+  background-color:#F5F5F5;
+}
+/*定义滚动条轨道
+内阴影+圆角*/
+pre::-webkit-scrollbar-track {
+  background-color:#F5F5F5;
+}
+/*定义滑块
+内阴影+圆角*/
+pre::-webkit-scrollbar-thumb {
+  background-color: rgb(69, 83, 100);
+}
+
+pre:active {
+  background-color: rgb(81, 95, 116);
+}
+</style>
+
+<div class="article-container">
+  <div class="article">
+    <h1 class="article-title">hexo 搭建博客</h1>
+    <div class="article-info">
+      <div class="article-info--item">
+        <div class="article-info--info">
+          
+          <div class="article-info--categories">
+            <span>分类：</span>
+            <a class="category-link" href="/categories/%E5%B7%A5%E5%85%B7/">工具</a>
+          </div>
+          
+          
+          <div class="article-info--tags">
+            <span>标签：</span>
+            <a class="tag-link" href="/tags/hexo/" rel="tag">hexo</a>
+          </div>
+          
+          <p class="article-info--date">日期：2022-08-24 15:09:00</p>
+        </div>
+        <img src="/imgs/default-cover.webp" alt="" class="article-cover">
+      </div>
+    </div>
+    <article class="article-content">
+      <h1 id="hero-搭建博客"><a href="#hero-搭建博客" class="headerlink" title="hero 搭建博客"></a>hero 搭建博客</h1><h2 id="一、准备"><a href="#一、准备" class="headerlink" title="一、准备"></a>一、准备</h2><h3 id="1、环境"><a href="#1、环境" class="headerlink" title="1、环境"></a>1、环境</h3><ul>
+<li>安装node<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">node -v # v16.16.0</span><br><span class="line"></span><br><span class="line">npm -v # 8.11.0</span><br></pre></td></tr></table></figure></li>
+<li>安装git<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git --version # git version 2.32.1 (Apple Git-133)</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="2、账号"><a href="#2、账号" class="headerlink" title="2、账号"></a>2、账号</h3><ul>
+<li>github <a target="_blank" rel="noopener" href="https://github.com/">注册</a></li>
+</ul>
+<h2 id="二、安装-hexo-工具"><a href="#二、安装-hexo-工具" class="headerlink" title="二、安装 hexo 工具"></a>二、安装 hexo 工具</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm install -g hexo-cli # 全局安装</span><br></pre></td></tr></table></figure>
+
+<h2 id="三、建站"><a href="#三、建站" class="headerlink" title="三、建站"></a>三、建站</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">hexo init &lt;folder&gt;</span><br><span class="line">cd &lt;folder&gt;</span><br><span class="line">npm install # yarn</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>目录</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">.</span><br><span class="line">├── _config.yml</span><br><span class="line">├── package.json</span><br><span class="line">├── scaffolds</span><br><span class="line">├── source</span><br><span class="line">|   ├── _drafts</span><br><span class="line">|   └── _posts</span><br><span class="line">└── themes</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>本地启动</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm run server # yarn server</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="四、配置"><a href="#四、配置" class="headerlink" title="四、配置"></a>四、<a target="_blank" rel="noopener" href="https://hexo.io/zh-cn/docs/configuration#%E7%BD%91%E5%9D%80">配置</a></h2><p>您可以在 _config.yml 中修改大部分的配置。</p>
+<h3 id="1、网站"><a href="#1、网站" class="headerlink" title="1、网站"></a>1、网站</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Site</span></span><br><span class="line">title: 520wsl</span><br><span class="line">subtitle: &#x27;Love Love Love&#x27;</span><br><span class="line">description: &#x27;是谁给你的勇气？？？梁静茹吗？&#x27;</span><br><span class="line">keywords: vue javascript python php</span><br><span class="line">author: Mad Dragon</span><br><span class="line">language: zh-CN</span><br><span class="line">timezone: &#x27;Asia/Shanghai&#x27;</span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th align="center">参数</th>
+<th align="left">描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">title</td>
+<td align="left">网站标题</td>
+</tr>
+<tr>
+<td align="center">subtitle</td>
+<td align="left">网站副标题</td>
+</tr>
+<tr>
+<td align="center">description</td>
+<td align="left">网站描述</td>
+</tr>
+<tr>
+<td align="center">keywords</td>
+<td align="left">网站的关键词。支持多个关键词。</td>
+</tr>
+<tr>
+<td align="center">author</td>
+<td align="left">您的名字</td>
+</tr>
+<tr>
+<td align="center">language</td>
+<td align="left">网站使用的语言。对于简体中文用户来说，使用不同的主题可能需要设置成不同的值，请参考你的主题的文档自行设置，常见的有 zh-Hans和 zh-CN。</td>
+</tr>
+<tr>
+<td align="center">timezone</td>
+<td align="left">网站时区。Hexo 默认使用您电脑的时区。请参考 时区列表 进行设置，如 America&#x2F;New_York, Japan, 和 UTC 。一般的，对于中国大陆地区可以使用 Asia&#x2F;Shanghai。</td>
+</tr>
+</tbody></table>
+<h3 id="2、网址"><a href="#2、网址" class="headerlink" title="2、网址"></a>2、网址</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">URL</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="comment"># Set your site url here. For example, if you use GitHub Page, set url as &#x27;https://username.github.io/project&#x27;</span></span></span><br><span class="line">url: http://520wsl.github.io</span><br><span class="line">permalink: :year/:month/:day/:title/</span><br><span class="line">permalink_defaults:</span><br><span class="line">pretty_urls:</span><br><span class="line">  trailing_index: true # Set to false to remove trailing &#x27;index.html&#x27; from permalinks</span><br><span class="line">  trailing_html: true # Set to false to remove trailing &#x27;.html&#x27; from permalinks</span><br></pre></td></tr></table></figure>
+
+
+<table>
+<thead>
+<tr>
+<th align="center">参数</th>
+<th align="left">描述</th>
+<th align="center">默认值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">url</td>
+<td align="left">网址, 必须以 http:&#x2F;&#x2F; 或 https:&#x2F;&#x2F; 开头</td>
+<td align="center"></td>
+</tr>
+<tr>
+<td align="center">root</td>
+<td align="left">网站根目录</td>
+<td align="center">url’s pathname</td>
+</tr>
+<tr>
+<td align="center">permalink</td>
+<td align="left">文章的 永久链接 格式</td>
+<td align="center">:year&#x2F;:month&#x2F;:day&#x2F;:title&#x2F;</td>
+</tr>
+<tr>
+<td align="center">permalink_defaults</td>
+<td align="left">永久链接中各部分的默认值</td>
+<td align="center"></td>
+</tr>
+<tr>
+<td align="center">pretty_urls</td>
+<td align="left">改写 permalink 的值来美化 URL</td>
+<td align="center"></td>
+</tr>
+<tr>
+<td align="center">pretty_urls.trailing_index</td>
+<td align="left">是否在永久链接中保留尾部的 index.html，设置为 false 时去除</td>
+<td align="center">true</td>
+</tr>
+<tr>
+<td align="center">pretty_urls.trailing_html</td>
+<td align="left">是否在永久链接中保留尾部的 .html, 设置为 false 时去除 (对尾部的 index.html无效)</td>
+<td align="center">true</td>
+</tr>
+</tbody></table>
+<h2 id="五、ssh-密钥、公钥生成（SSH-Keys）"><a href="#五、ssh-密钥、公钥生成（SSH-Keys）" class="headerlink" title="五、ssh 密钥、公钥生成（SSH Keys）"></a>五、ssh 密钥、公钥生成（SSH Keys）</h2><h3 id="1、检查是否安装ssh"><a href="#1、检查是否安装ssh" class="headerlink" title="1、检查是否安装ssh"></a>1、检查是否安装ssh</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">wangshilin@wangshilindeMacBook-Pro git % ssh</span><br><span class="line">usage: ssh [-46AaCfGgKkMNnqsTtVvXxYy] [-B bind_interface]</span><br><span class="line">           [-b bind_address] [-c cipher_spec] [-D [bind_address:]port]</span><br><span class="line">           [-E log_file] [-e escape_char] [-F configfile] [-I pkcs11]</span><br><span class="line">           [-i identity_file] [-J [user@]host[:port]] [-L address]</span><br><span class="line">           [-l login_name] [-m mac_spec] [-O ctl_cmd] [-o option] [-p port]</span><br><span class="line">           [-Q query_option] [-R address] [-S ctl_path] [-W host:port]</span><br><span class="line">           [-w local_tun[:remote_tun]] destination [command]</span><br><span class="line">wangshilin@wangshilindeMacBook-Pro git % </span><br></pre></td></tr></table></figure>
+
+<h3 id="2、生成ssh-keys"><a href="#2、生成ssh-keys" class="headerlink" title="2、生成ssh keys"></a>2、生成ssh keys</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ssh-keygen -t rsa -C &quot;your email@example.com&quot;</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">引号里面填写你的注册时的邮箱地址，比如xxxxxxxx@163.com</span></span><br></pre></td></tr></table></figure>
+<p>【第一次回车】之后会出现：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Generating public/private rsa key pair.</span><br><span class="line">Enter file in which to save the key (/Users/wangshilin/.ssh/id_rsa):   </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">到这里可以直接回车将密钥按默认文件进行存储</span></span><br></pre></td></tr></table></figure>
+
+<p>【第二次回车】然后会出现：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Enter passphrase (empty for no passphrase):</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">这里是要你输入密码，其实不需要输什么密码，直接回车就行</span></span><br><span class="line">Enter same passphrase again:</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">再回车</span></span><br></pre></td></tr></table></figure>
+
+<p>【第三次回车、第四次回车】接下来屏幕会显示：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">Your identification has been saved in /Users/wangshilin/.ssh/id_rsa</span><br><span class="line">Your public key has been saved in /Users/wangshilin/.ssh/id_rsa.pub</span><br><span class="line"></span><br><span class="line">The key fingerprint is:</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">这里是各种字母数字组成的字符串，结尾是你的邮箱</span></span><br><span class="line">SHA256:xxxxxxxxxxxx xxxxxxx@163.com</span><br><span class="line"></span><br><span class="line">The key&#x27;s randomart image is:</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">这里也是各种字母数字符号组成的字符串</span></span><br><span class="line">+---[RSA 3072]----+</span><br><span class="line">|   .             |</span><br><span class="line">|  + .            |</span><br><span class="line">|   O +       .   |</span><br><span class="line">|  + / o     . .  |</span><br><span class="line">|   % X .S  o .   |</span><br><span class="line">|    O . ..+ .o . |</span><br><span class="line">|     . .oo =+ =  |</span><br><span class="line">|      ..Eoooo+ +.|</span><br><span class="line">|        . oooo+o+|</span><br><span class="line">+----[SHA256]-----+</span><br></pre></td></tr></table></figure>
+
+<p>四次回车后，我们的SSH keys就已经生成了，存在C:&#x2F;Users&#x2F;自己电脑的用户名（如未新建，默认是Administrator）&#x2F;.ssh&#x2F;id_rsa.pub文件中。</p>
+<h2 id="六、在GitHub账户中添加你的公钥"><a href="#六、在GitHub账户中添加你的公钥" class="headerlink" title="六、在GitHub账户中添加你的公钥"></a>六、在GitHub账户中添加你的公钥</h2><h3 id="1、登陆github，进入Settings"><a href="#1、登陆github，进入Settings" class="headerlink" title="1、登陆github，进入Settings"></a>1、登陆github，进入Settings</h3><p><img src="/images/hexo%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A201.png" alt="hexo搭建博客01.png"></p>
+<h3 id="2、点击-SSH-and-GPG-Keys："><a href="#2、点击-SSH-and-GPG-Keys：" class="headerlink" title="2、点击 SSH and GPG Keys："></a>2、点击 SSH and GPG Keys：</h3><p><img src="/images/hexo%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A202.png" alt="hexo搭建博客02.png"></p>
+<h3 id="3、选择-New-SSH-key"><a href="#3、选择-New-SSH-key" class="headerlink" title="3、选择 New SSH key"></a>3、选择 New SSH key</h3><p><img src="/images/hexo%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A203.png" alt="hexo搭建博客03.png"></p>
+<h3 id="4、添加SSH-keys步骤如图"><a href="#4、添加SSH-keys步骤如图" class="headerlink" title="4、添加SSH keys步骤如图"></a>4、添加SSH keys步骤如图</h3><p><img src="/images/hexo%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A204.png" alt="hexo搭建博客04.png"></p>
+<ul>
+<li>Title随便写</li>
+<li>Key ssh生成的公钥，id_rsa.pub的内容复制粘贴过来</li>
+</ul>
+<h3 id="5、测试SSH是否绑定成功"><a href="#5、测试SSH是否绑定成功" class="headerlink" title="5、测试SSH是否绑定成功"></a>5、测试SSH是否绑定成功</h3><p>输入以下命令：注意：<a href="mailto:&#103;&#105;&#116;&#64;&#x67;&#x69;&#x74;&#x68;&#117;&#98;&#46;&#x63;&#x6f;&#109;">&#103;&#105;&#116;&#64;&#x67;&#x69;&#x74;&#x68;&#117;&#98;&#46;&#x63;&#x6f;&#109;</a>不要做任何更改！</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh -T git@github.com</span><br></pre></td></tr></table></figure>
+<p>回车，再次输入yes后回车，就会显示：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">wangshilin@wangshilindeMacBook-Pro git % ssh -T git@github.com</span><br><span class="line">Hi 520wsl! You&#x27;ve successfully authenticated, but GitHub does not provide shell access.</span><br><span class="line">wangshilin@wangshilindeMacBook-Pro git % </span><br></pre></td></tr></table></figure>
+
+<h3 id="6、配置Git个人信息"><a href="#6、配置Git个人信息" class="headerlink" title="6、配置Git个人信息"></a>6、配置Git个人信息</h3><p>Git 会根据用户的名字和邮箱来记录提交，GitHub 也是用这些信息来做权限的处理，输入以下命令进行个人信息的设置，把名称和邮箱替换成自己的，名字可以不是GitHub的昵称，但为了方便记忆，建议与GitHub一致。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git config --global user.name &quot;此处填你的用户名&quot;</span><br><span class="line">git config --global user.email &quot;此处填你的邮箱&quot;</span><br></pre></td></tr></table></figure>
+<h2 id="七、生成-github令牌"><a href="#七、生成-github令牌" class="headerlink" title="七、生成 github令牌"></a>七、生成 github令牌</h2><h3 id="1、登陆github，找到Settings中的Developer-settings-开发者设置-，其中有一个Personal-access-tokens，点进去就可以Generate-new-token了。"><a href="#1、登陆github，找到Settings中的Developer-settings-开发者设置-，其中有一个Personal-access-tokens，点进去就可以Generate-new-token了。" class="headerlink" title="1、登陆github，找到Settings中的Developer settings(开发者设置)，其中有一个Personal access tokens，点进去就可以Generate new token了。"></a>1、登陆github，找到Settings中的Developer settings(开发者设置)，其中有一个Personal access tokens，点进去就可以Generate new token了。</h3><p><img src="/images/hexo%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A207.png" alt="hexo搭建博客07.png"><br><img src="/images/hexo%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A208.png" alt="hexo搭建博客08.png"></p>
+<h3 id="2、生成令牌"><a href="#2、生成令牌" class="headerlink" title="2、生成令牌"></a>2、生成令牌</h3><p><img src="/images/hexo%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A209.png" alt="hexo搭建博客09.png"><br><img src="/images/hexo%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A210.png" alt="hexo搭建博客10.png"><br>Select scopes 最好全选 </p>
+<p>点击Generate token后，会显示生成的一段代替密码的序列号，一键复制之后将它存在方便找到的地方，因为下一次使用令牌时这里的序列号将被隐藏。</p>
+<h2 id="八、Hexo发布"><a href="#八、Hexo发布" class="headerlink" title="八、Hexo发布"></a>八、Hexo发布</h2><h3 id="1、创建和你github登陆名同名的项目-yourname-github-io"><a href="#1、创建和你github登陆名同名的项目-yourname-github-io" class="headerlink" title="1、创建和你github登陆名同名的项目  yourname.github.io"></a>1、创建和你github登陆名同名的项目  yourname.github.io</h3><p><img src="/images/hexo%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A205.png" alt="hexo搭建博客05.png"></p>
+<h3 id="2、复制项目地址"><a href="#2、复制项目地址" class="headerlink" title="2、复制项目地址"></a>2、复制项目地址</h3><p><img src="/images/hexo%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A206.png" alt="hexo搭建博客06.png"></p>
+<h3 id="3、打开-hexo项目的-config-yml-文件，将该文件最底部的deploy关键字代码："><a href="#3、打开-hexo项目的-config-yml-文件，将该文件最底部的deploy关键字代码：" class="headerlink" title="3、打开 hexo项目的_config.yml 文件，将该文件最底部的deploy关键字代码："></a>3、打开 hexo项目的_config.yml 文件，将该文件最底部的deploy关键字代码：</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">deploy:</span><br><span class="line">  type: </span><br></pre></td></tr></table></figure>
+<p>修改为（注意：所有英文冒号后面都有一个空格, repository后面的是获取到的仓库地址）</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">deploy:</span><br><span class="line">  type: git</span><br><span class="line">  repository: https://github.com/xxx/xxx.github.io.git</span><br><span class="line">  branch: main</span><br></pre></td></tr></table></figure>
+
+<h3 id="4、安装hexo-deployer-git自动部署发布工具，即将hexo-部署到-git-page-的-deployer"><a href="#4、安装hexo-deployer-git自动部署发布工具，即将hexo-部署到-git-page-的-deployer" class="headerlink" title="4、安装hexo-deployer-git自动部署发布工具，即将hexo 部署到 git page 的 deployer"></a>4、安装hexo-deployer-git自动部署发布工具，即将hexo 部署到 git page 的 deployer</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm install hexo-deployer-git --save # yarn add hexo-deployer-git</span><br></pre></td></tr></table></figure>
+
+<h3 id="5、推送到github"><a href="#5、推送到github" class="headerlink" title="5、推送到github"></a>5、推送到github</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hexo clean &amp;&amp; hexo deploy</span><br></pre></td></tr></table></figure>
+
+<h3 id="6、推送后会提示填写用户名和密码"><a href="#6、推送后会提示填写用户名和密码" class="headerlink" title="6、推送后会提示填写用户名和密码"></a>6、推送后会提示填写用户名和密码</h3><ul>
+<li>用户名是github的用户名</li>
+<li>密码是上面生产的令牌（注意不是github的密码）</li>
+</ul>
+<h3 id="7、如下类似提示-推送成功"><a href="#7、如下类似提示-推送成功" class="headerlink" title="7、如下类似提示 推送成功"></a>7、如下类似提示 推送成功</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">wangshilin@wangshilindeMacBook-Pro 520wsl % hexo clean &amp;&amp; hexo deploy </span><br><span class="line">INFO  Validating config</span><br><span class="line">...</span><br><span class="line">...</span><br><span class="line">Enumerating objects: 34, done.</span><br><span class="line">Counting objects: 100% (34/34), done.</span><br><span class="line">Delta compression using up to 10 threads</span><br><span class="line">Compressing objects: 100% (26/26), done.</span><br><span class="line">Writing objects: 100% (34/34), 881.81 KiB | 15.20 MiB/s, done.</span><br><span class="line">Total 34 (delta 4), reused 0 (delta 0), pack-reused 0</span><br><span class="line">remote: Resolving deltas: 100% (4/4), done.</span><br><span class="line">To https://github.com/520wsl/520wsl.github.io.git</span><br><span class="line"> + a989e62...6690edd HEAD -&gt; main (forced update)</span><br><span class="line">Branch &#x27;master&#x27; set up to track remote branch &#x27;main&#x27; from &#x27;https://github.com/520wsl/520wsl.github.io.git&#x27;.</span><br><span class="line">INFO  Deploy done: git</span><br><span class="line">wangshilin@wangshilindeMacBook-Pro 520wsl % </span><br></pre></td></tr></table></figure>
+
+<h2 id="九、Github-Pages-设置"><a href="#九、Github-Pages-设置" class="headerlink" title="九、Github Pages 设置"></a>九、Github Pages 设置</h2><h3 id="1、进入仓库，找到Settings，向下翻最后面有Github-Pages，点击Check-it-out-here"><a href="#1、进入仓库，找到Settings，向下翻最后面有Github-Pages，点击Check-it-out-here" class="headerlink" title="1、进入仓库，找到Settings，向下翻最后面有Github Pages，点击Check it out here"></a>1、进入仓库，找到Settings，向下翻最后面有Github Pages，点击Check it out here</h3><p><img src="/images/hexo%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A211.png" alt="hexo搭建博客11.png"></p>
+<h3 id="2、打开-https-youname-github-io"><a href="#2、打开-https-youname-github-io" class="headerlink" title="2、打开 https://youname.github.io/"></a>2、打开 <a target="_blank" rel="noopener" href="https://youname.github.io/">https://youname.github.io/</a></h3><p><img src="/images/hexo%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A212.png" alt="hexo搭建博客12.png"></p>
+<p>好了，现在你的博客可以被人看见了。开心吧😄</p>
+<h2 id="十、主题"><a href="#十、主题" class="headerlink" title="十、主题"></a>十、主题</h2><p><a target="_blank" rel="noopener" href="http://yangxiang.cc/2022/02/17/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8hexo-theme-cola%E4%B8%BB%E9%A2%98/">http://yangxiang.cc/2022/02/17/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8hexo-theme-cola%E4%B8%BB%E9%A2%98/</a></p>
+
+    </article>
+    
+    <div class="read-nums">
+      <!-- id 将作为查询条件 -->
+      <span id="2022/08/24/docs/其他/20220824 hexo搭建博客/" class="leancloud_visitors" data-flag-title="Your Article Title">
+        <em class="post-meta-item-text">浏览量</em>
+        <i class="leancloud-visitors-count"></i>
+      </span>
+    </div>
+    <div class="comments-intro">
+      <h2>评论区</h2>
+      <p>欢迎你留下宝贵的意见，昵称输入QQ号会显示QQ头像哦~</p>
+    </div>
+    <div id="vcomments" class="vcomments"></div>
+    
+  </div>
+  <div class="article-catelogue">
+    <div class="article-catelogue--wrapper">
+      <div class="catelogue catelogue-1">
+        <h3>目录</h3>
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#hero-%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A2"><span class="toc-number">1.</span> <span class="toc-text">hero 搭建博客</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E5%87%86%E5%A4%87"><span class="toc-number">1.1.</span> <span class="toc-text">一、准备</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1%E3%80%81%E7%8E%AF%E5%A2%83"><span class="toc-number">1.1.1.</span> <span class="toc-text">1、环境</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2%E3%80%81%E8%B4%A6%E5%8F%B7"><span class="toc-number">1.1.2.</span> <span class="toc-text">2、账号</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E5%AE%89%E8%A3%85-hexo-%E5%B7%A5%E5%85%B7"><span class="toc-number">1.2.</span> <span class="toc-text">二、安装 hexo 工具</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E5%BB%BA%E7%AB%99"><span class="toc-number">1.3.</span> <span class="toc-text">三、建站</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E9%85%8D%E7%BD%AE"><span class="toc-number">1.4.</span> <span class="toc-text">四、配置</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1%E3%80%81%E7%BD%91%E7%AB%99"><span class="toc-number">1.4.1.</span> <span class="toc-text">1、网站</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2%E3%80%81%E7%BD%91%E5%9D%80"><span class="toc-number">1.4.2.</span> <span class="toc-text">2、网址</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81ssh-%E5%AF%86%E9%92%A5%E3%80%81%E5%85%AC%E9%92%A5%E7%94%9F%E6%88%90%EF%BC%88SSH-Keys%EF%BC%89"><span class="toc-number">1.5.</span> <span class="toc-text">五、ssh 密钥、公钥生成（SSH Keys）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1%E3%80%81%E6%A3%80%E6%9F%A5%E6%98%AF%E5%90%A6%E5%AE%89%E8%A3%85ssh"><span class="toc-number">1.5.1.</span> <span class="toc-text">1、检查是否安装ssh</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2%E3%80%81%E7%94%9F%E6%88%90ssh-keys"><span class="toc-number">1.5.2.</span> <span class="toc-text">2、生成ssh keys</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E5%9C%A8GitHub%E8%B4%A6%E6%88%B7%E4%B8%AD%E6%B7%BB%E5%8A%A0%E4%BD%A0%E7%9A%84%E5%85%AC%E9%92%A5"><span class="toc-number">1.6.</span> <span class="toc-text">六、在GitHub账户中添加你的公钥</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1%E3%80%81%E7%99%BB%E9%99%86github%EF%BC%8C%E8%BF%9B%E5%85%A5Settings"><span class="toc-number">1.6.1.</span> <span class="toc-text">1、登陆github，进入Settings</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2%E3%80%81%E7%82%B9%E5%87%BB-SSH-and-GPG-Keys%EF%BC%9A"><span class="toc-number">1.6.2.</span> <span class="toc-text">2、点击 SSH and GPG Keys：</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3%E3%80%81%E9%80%89%E6%8B%A9-New-SSH-key"><span class="toc-number">1.6.3.</span> <span class="toc-text">3、选择 New SSH key</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4%E3%80%81%E6%B7%BB%E5%8A%A0SSH-keys%E6%AD%A5%E9%AA%A4%E5%A6%82%E5%9B%BE"><span class="toc-number">1.6.4.</span> <span class="toc-text">4、添加SSH keys步骤如图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5%E3%80%81%E6%B5%8B%E8%AF%95SSH%E6%98%AF%E5%90%A6%E7%BB%91%E5%AE%9A%E6%88%90%E5%8A%9F"><span class="toc-number">1.6.5.</span> <span class="toc-text">5、测试SSH是否绑定成功</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6%E3%80%81%E9%85%8D%E7%BD%AEGit%E4%B8%AA%E4%BA%BA%E4%BF%A1%E6%81%AF"><span class="toc-number">1.6.6.</span> <span class="toc-text">6、配置Git个人信息</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%83%E3%80%81%E7%94%9F%E6%88%90-github%E4%BB%A4%E7%89%8C"><span class="toc-number">1.7.</span> <span class="toc-text">七、生成 github令牌</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1%E3%80%81%E7%99%BB%E9%99%86github%EF%BC%8C%E6%89%BE%E5%88%B0Settings%E4%B8%AD%E7%9A%84Developer-settings-%E5%BC%80%E5%8F%91%E8%80%85%E8%AE%BE%E7%BD%AE-%EF%BC%8C%E5%85%B6%E4%B8%AD%E6%9C%89%E4%B8%80%E4%B8%AAPersonal-access-tokens%EF%BC%8C%E7%82%B9%E8%BF%9B%E5%8E%BB%E5%B0%B1%E5%8F%AF%E4%BB%A5Generate-new-token%E4%BA%86%E3%80%82"><span class="toc-number">1.7.1.</span> <span class="toc-text">1、登陆github，找到Settings中的Developer settings(开发者设置)，其中有一个Personal access tokens，点进去就可以Generate new token了。</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2%E3%80%81%E7%94%9F%E6%88%90%E4%BB%A4%E7%89%8C"><span class="toc-number">1.7.2.</span> <span class="toc-text">2、生成令牌</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AB%E3%80%81Hexo%E5%8F%91%E5%B8%83"><span class="toc-number">1.8.</span> <span class="toc-text">八、Hexo发布</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1%E3%80%81%E5%88%9B%E5%BB%BA%E5%92%8C%E4%BD%A0github%E7%99%BB%E9%99%86%E5%90%8D%E5%90%8C%E5%90%8D%E7%9A%84%E9%A1%B9%E7%9B%AE-yourname-github-io"><span class="toc-number">1.8.1.</span> <span class="toc-text">1、创建和你github登陆名同名的项目  yourname.github.io</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2%E3%80%81%E5%A4%8D%E5%88%B6%E9%A1%B9%E7%9B%AE%E5%9C%B0%E5%9D%80"><span class="toc-number">1.8.2.</span> <span class="toc-text">2、复制项目地址</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3%E3%80%81%E6%89%93%E5%BC%80-hexo%E9%A1%B9%E7%9B%AE%E7%9A%84-config-yml-%E6%96%87%E4%BB%B6%EF%BC%8C%E5%B0%86%E8%AF%A5%E6%96%87%E4%BB%B6%E6%9C%80%E5%BA%95%E9%83%A8%E7%9A%84deploy%E5%85%B3%E9%94%AE%E5%AD%97%E4%BB%A3%E7%A0%81%EF%BC%9A"><span class="toc-number">1.8.3.</span> <span class="toc-text">3、打开 hexo项目的_config.yml 文件，将该文件最底部的deploy关键字代码：</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4%E3%80%81%E5%AE%89%E8%A3%85hexo-deployer-git%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2%E5%8F%91%E5%B8%83%E5%B7%A5%E5%85%B7%EF%BC%8C%E5%8D%B3%E5%B0%86hexo-%E9%83%A8%E7%BD%B2%E5%88%B0-git-page-%E7%9A%84-deployer"><span class="toc-number">1.8.4.</span> <span class="toc-text">4、安装hexo-deployer-git自动部署发布工具，即将hexo 部署到 git page 的 deployer</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5%E3%80%81%E6%8E%A8%E9%80%81%E5%88%B0github"><span class="toc-number">1.8.5.</span> <span class="toc-text">5、推送到github</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6%E3%80%81%E6%8E%A8%E9%80%81%E5%90%8E%E4%BC%9A%E6%8F%90%E7%A4%BA%E5%A1%AB%E5%86%99%E7%94%A8%E6%88%B7%E5%90%8D%E5%92%8C%E5%AF%86%E7%A0%81"><span class="toc-number">1.8.6.</span> <span class="toc-text">6、推送后会提示填写用户名和密码</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7%E3%80%81%E5%A6%82%E4%B8%8B%E7%B1%BB%E4%BC%BC%E6%8F%90%E7%A4%BA-%E6%8E%A8%E9%80%81%E6%88%90%E5%8A%9F"><span class="toc-number">1.8.7.</span> <span class="toc-text">7、如下类似提示 推送成功</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B9%9D%E3%80%81Github-Pages-%E8%AE%BE%E7%BD%AE"><span class="toc-number">1.9.</span> <span class="toc-text">九、Github Pages 设置</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1%E3%80%81%E8%BF%9B%E5%85%A5%E4%BB%93%E5%BA%93%EF%BC%8C%E6%89%BE%E5%88%B0Settings%EF%BC%8C%E5%90%91%E4%B8%8B%E7%BF%BB%E6%9C%80%E5%90%8E%E9%9D%A2%E6%9C%89Github-Pages%EF%BC%8C%E7%82%B9%E5%87%BBCheck-it-out-here"><span class="toc-number">1.9.1.</span> <span class="toc-text">1、进入仓库，找到Settings，向下翻最后面有Github Pages，点击Check it out here</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2%E3%80%81%E6%89%93%E5%BC%80-https-youname-github-io"><span class="toc-number">1.9.2.</span> <span class="toc-text">2、打开 https:&#x2F;&#x2F;youname.github.io&#x2F;</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%81%E3%80%81%E4%B8%BB%E9%A2%98"><span class="toc-number">1.10.</span> <span class="toc-text">十、主题</span></a></li></ol></li></ol>
+      </div>
+      
+        <div class="catelogue catelogue-2">
+          
+            <p>
+              <span>上一篇：</span>
+              <a href="/2022/08/24/hexo/20220824 hexo搭建博客/">hexo 搭建博客</a>
+            </p>
+           
+          
+            <p>
+              <span>下一篇</span>
+              <a href="/2022/08/19/docs/业务知识/20220819 影像上传技术分析(整理中...)/">影像上传技术分析</a>
+            </p>
+          
+        </div>
+      
+    </div>
+  </div>
+</div>
+
+<script src="/js/prism.js"></script>
+
+<script>
+  // var定义，避免pjax重新进来造成的重复声明错误
+  var config = JSON.parse('{"enable":true,"appId":"Pf8zCXGEH1qsprnWfikVVujL-gzGzoHsz","appKey":"qOqoiUHhH1TGtLRUYURkLRQX","placeholder":"请留下你宝贵的意见吧~","meta":["nick"],"recordIP":true,"visitor":true,"enableQQ":true}')
+  new Valine({
+    el: '#vcomments',
+    appId: config.appId,
+    appKey: config.appKey,
+    placeholder: config.placeholder,
+    meta: config.meta,
+    recordIP: config.recordIP,
+    visitor: config.visitor,
+    enableQQ: config.enableQQ,
+    path: '2022/08/24/docs/其他/20220824 hexo搭建博客/'
+  })
+</script>
+
+
+<script>
+  $(document).on('pjax:complete', function() {
+    const tocs = document.querySelector('.toc')
+    const as = tocs ? tocs.querySelectorAll('a') : []
+    as.forEach(a => {
+      a.addEventListener('click', e => {
+        const href = decodeURIComponent(a.href)
+        href.search(/#(.*)/)
+        const id = RegExp.$1
+        const target = document.querySelector('#' + id)
+        const top = target.offsetTop
+        document.documentElement.scrollTo({
+          top: top - 100,
+          behavior: 'smooth'
+        })
+        e.preventDefault()
+      })
+    })
+  })
+</script> 
+
+</div>
+      <div class="main-right-wrapper"><div class="main-right">
+  <div class="main-right--board">
+    <div class="main-right--title">
+      <h5>公告栏</h5>
+      <i class="iconfont icon-gonggao"></i>
+    </div>
+    <div class="main-right--content">
+      Hello~大噶好。唔系可乐爱宅着，欢迎你们来到我的博客小站，希望能在这里收获到有用的东西哦！ 
+    </div>
+  </div>
+
+  <div id="aplayer" class="main-right--music"></div>
+
+  <div class="operate-items">
+    <div class="operate-item backtop">
+      <i class="iconfont icon-huidaodingbu"></i>
+      <span>回到顶部</span>
+    </div>
+    
+    <div class="operate-item turn-comment hidden">
+      <i class="iconfont icon-pinglun"></i>
+      <span>查看评论</span>
+    </div>
+    
+  </div>
+
+  <div class="main-right--site">
+    <div class="main-right--power">
+      <p>Power By <a target="_blank" rel="noopener" href="https://hexo.io/zh-cn/docs/">Hexo</a>.</p>
+      <p>Theme：<a target="_blank" rel="noopener" href="https://github.com/Aizener/hexo-theme-cola">Cola.</a></p>
+    </div>
+    <p class="main-right--refer">xxxx </p>
+  </div>
+</div>
+
+<script>
+  function setOperateItem () {
+    const reg = /\d{4}\/\d{2}\/\d{2}\/.+/
+    const path = location.pathname
+    const commentDom = document.querySelector('.turn-comment')
+    if (commentDom) {
+      if (reg.test(path) || path.match(/\/log\/.+/)) {
+        commentDom.classList.remove('hidden')
+      } else {
+        commentDom.classList.add('hidden')
+      }
+    }
+  }
+
+  setOperateItem()
+  const musics = JSON.parse(`[{"name":"安河桥","artist":"宋冬野","url":"http://ting6.yymp3.net:82/new25/songdongye/11.mp3","cover":"https://img2.baidu.com/it/u=1260056724,1076343118&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=500"},{"name":"卡布达","artist":"暂无","url":"/music/kabuda.mp3","cover":"https://img2.baidu.com/it/u=705831265,2862720033&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=500"},{"name":"八连杀","artist":"苏三","url":"/music/八连杀.mp3","cover":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQo0SWQx6YrNA8lElaG4OOKLkNkNzLO1PflKg&usqp=CAU"}]`)
+  const ap = new APlayer({
+    container: document.querySelector('#aplayer'),
+    audio: musics,
+  })
+
+  $(document).on('pjax:complete', function() {
+    setOperateItem()
+  })
+
+  document.querySelector('.backtop').addEventListener('click', () => {
+    document.documentElement.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    })
+  })
+  const dom = document.querySelector('.turn-comment')
+  dom && dom.addEventListener('click', () => {
+    const commentDom = document.querySelector('.comments-intro')
+    if (!commentDom) return
+    const top = commentDom.offsetTop, height = commentDom.offsetHeight
+    document.documentElement.scrollTo({
+      top: top - 2 * height,
+      behavior: 'smooth'
+    })
+  })
+</script></div>
+    </section>
+  </div>
+  <div id="progress" class="progress"></div>
+
+  <script>
+    function initScroll () {
+      document.addEventListener('scroll', () => {
+        const doc = document.documentElement
+        const scrollTop = doc.scrollTop
+        const pageHeight = doc.offsetHeight
+        const clientHeight = doc.clientHeight
+        const ratio = scrollTop / (pageHeight - clientHeight)
+        const progress = document.querySelector('#progress')
+        const avatarImg = document.querySelector('.main-left--avatar')
+        progress.style.width = (100 * ratio) + '%'
+        avatarImg.style.transform = `rotate(${360 * ratio}deg)`
+      })
+    }
+
+
+    window.onload = function () {
+      setTimeout(() => {
+        $('#load').slideUp()
+        $('#container').slideToggle()
+        setTimeout(() => {
+          initScroll()
+          if (['/', '/log/', '/link/', '/about/', '/tools/'].includes(location.pathname) && window.innerWidth > 1200) {
+            init && init('container') // 水波纹动画
+          }
+        }, 500)
+      }, 500)
+    }
+    
+    // 对所有链接跳转事件绑定pjax容器container
+    $(document).pjax('a[target!=_blank]', '#main-container', {fragment:'#main-container', timeout:8000})
+
+    $(document).on('pjax:start', function() {
+      // $('.main-container').hide()
+    })
+    $(document).on('pjax:complete', function() {
+      $('.main-container').addClass('to-up').on('animationend', function() {
+        $(this).removeClass('to-up')
+      })
+    })
+    $(document).on('pjax:popstate', function() {
+      // $('.main-container').fadeIn()
+    })
+  </script>
+  
+</body>
+</html>
